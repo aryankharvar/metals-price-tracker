@@ -1,0 +1,37 @@
+name: Daily Metal Price Fetch
+
+on:
+  schedule:
+    # Runs at 21:30 UTC on weekdays — after US markets close (~21:00 UTC / 4pm ET).
+    # Cron is in UTC; adjust if you want a different local time.
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab too
+
+permissions:
+  contents: write   # needed so the workflow can commit the updated .db file back
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas sqlalchemy
+
+      - name: Run fetch script
+        run: python fetch_prices.py
+
+      - name: Commit updated database
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add metal_prices.db
+          git diff --quiet --cached || git commit -m "Daily price update: $(date -u +'%Y-%m-%d')"
+          git push
