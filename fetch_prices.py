@@ -41,6 +41,12 @@ def init_db(conn: sqlite3.Connection) -> None:
         )
         """
     )
+
+    # Create analysis views (idempotent — safe to run every time)
+    views_path = Path(__file__).parent / "views.sql"
+    if views_path.exists():
+        conn.executescript(views_path.read_text())
+
     conn.commit()
 
 
@@ -95,7 +101,6 @@ def main():
     init_db(conn)
 
     df = fetch_latest_prices()
-    print(df.head())
     if df.empty:
         print("No price data fetched — exiting without writing to DB.")
         return
